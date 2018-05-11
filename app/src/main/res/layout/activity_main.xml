@@ -8,10 +8,17 @@
     tools:context=".activity.MainActivity">
 
     <Button
-        android:id="@+id/btn_camera"
+        android:id="@+id/btn_scanner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
+        android:text="扫描进行识别"/>
+
+    <Button
+        android:id="@+id/btn_camera"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
         android:text="拍照进行识别"/>
 
     <Button
@@ -36,7 +43,7 @@
             android:id="@+id/tv_result"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"/>
+            android:padding="10dp"/>
 
     </ScrollView>
 

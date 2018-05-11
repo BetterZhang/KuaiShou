@@ -3,15 +3,12 @@ package com.anshi.kuaishou.activity;
 import android.Manifest;
 import android.app.ProgressDialog;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.StrictMode;
 import android.provider.MediaStore;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -19,9 +16,12 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.anshi.kuaishou.R;
+import com.anshi.kuaishou.domain.MailAnalysisResult;
 import com.anshi.kuaishou.domain.ResponseBody;
 import com.anshi.kuaishou.service.AppService;
 import com.anshi.kuaishou.utils.BitmapUtil;
+import com.anshi.kuaishou.utils.MailAnalyzer;
+import com.tbruyelle.rxpermissions2.RxPermissions;
 import java.io.File;
 import java.net.ConnectException;
 import java.util.Date;
@@ -39,10 +39,15 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
+    private static final String TAG = "MainActivity";
+
+    Button btn_scanner;
     Button btn_camera;
     Button btn_photo;
     TextView tv_result;
     ProgressDialog progressDialog;
+
+    RxPermissions rxPermissions;
 
     private static final int CONNECT_TIMEOUT = 30;
     private static final int WRITE_TIMEOUT = 20;
@@ -59,22 +64,32 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        rxPermissions = new RxPermissions(this);
 
         StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
         StrictMode.setVmPolicy(builder.build());
         builder.detectFileUriExposure();
 
+        initView();
+        initListener();
+        initRetrofit();
+    }
+
+    private void initView() {
+        btn_scanner = findViewById(R.id.btn_scanner);
         btn_camera = findViewById(R.id.btn_camera);
         btn_photo = findViewById(R.id.btn_photo);
         tv_result = findViewById(R.id.tv_result);
-        btn_camera.setOnClickListener(this);
-        btn_photo.setOnClickListener(this);
 
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("正在识别中，请稍等...");
         progressDialog.setCancelable(false);
+    }
 
-        initRetrofit();
+    private void initListener() {
+        btn_scanner.setOnClickListener(this);
+        btn_camera.setOnClickListener(this);
+        btn_photo.setOnClickListener(this);
     }
 
     private void loadData(RequestBody body) {
@@ -90,19 +105,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 progressDialog.cancel();
                 if (response == null)
                     return;
-                Log.d("android", response.body().toString());
+                Log.d(TAG, response.body().toString());
                 List<String> strs = response.body().getLinesText();
 
-                if (strs.size() == 0) {
-                    tv_result.setText("识别结果为空");
-                    return;
-                }
+//                if (strs.size() == 0) {
+//                    tv_result.setText("识别结果为空");
+//                    return;
+//                }
+//
+//                StringBuilder stringBuilder = new StringBuilder();
+//                for (int i = 0; i < strs.size(); i++) {
+//                    stringBuilder.append(strs.get(i) + "\n");
+//                }
+//                tv_result.setText(stringBuilder.toString());
 
-                StringBuilder stringBuilder = new StringBuilder();
-                for (int i = 0; i < strs.size(); i++) {
-                    stringBuilder.append(strs.get(i) + "\n");
+                MailAnalysisResult result = MailAnalyzer.doMailAnalysis(strs);
+                Log.d(TAG, result.toString());
+                if (result.getCode() == 200) {
+                    tv_result.setText(result.toString());
+                } else if (result.getCode() == 500) {
+                    tv_result.setText("识别结果为空");
                 }
-                tv_result.setText(stringBuilder.toString());
             }
 
             @Override
@@ -142,39 +165,56 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onClick(View v) {
-        if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
-            //权限还没有授予，需要在这里写申请权限的代码
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 3000);
-        } else {
-            //权限已经被授予，在这里直接写要执行的相应方法即可
-        }
-
         switch (v.getId()) {
+            case R.id.btn_scanner:
+                break;
             case R.id.btn_camera:
-                String path = Environment.getExternalStorageDirectory() + File.separator + "images"; //获取路径
-                String fileName = new Date().getTime() + ".jpg";//定义文件名
-                File file = new File(path, fileName);
-                if (!file.getParentFile().exists()) {//文件夹不存在
-                    file.getParentFile().mkdirs();
-                }
-                filePath = file.getAbsolutePath();
-                Log.e("android", filePath);
-                Uri imageUri = Uri.fromFile(file);
-                Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
-                cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
-                startActivityForResult(cameraIntent, 1000);
+                rxPermissions
+                        .request(Manifest.permission.CAMERA)
+                        .subscribe(granted -> {
+                            if (granted) {
+                                gotoCamera();
+                            } else {
+
+                            }
+                        });
                 break;
             case R.id.btn_photo:
-                Intent photoIntent = new Intent(Intent.ACTION_PICK,
-                        android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                startActivityForResult(photoIntent, 2000);
+                rxPermissions
+                        .request(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                        .subscribe(granted -> {
+                            if (granted) {
+                                gotoSelectPhoto();
+                            } else {
+
+                            }
+                        });
                 break;
             default:
                 break;
         }
+    }
+
+    private void gotoCamera() {
+        // 获取路径
+        String path = Environment.getExternalStorageDirectory() + File.separator + "images";
+        // 定义文件名
+        String fileName = new Date().getTime() + ".jpg";
+        File file = new File(path, fileName);
+        if (!file.getParentFile().exists()) {
+            file.getParentFile().mkdirs();
+        }
+        filePath = file.getAbsolutePath();
+        Log.d(TAG, filePath);
+        Uri imageUri = Uri.fromFile(file);
+        Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
+        cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
+        startActivityForResult(cameraIntent, 1000);
+    }
+
+    private void gotoSelectPhoto() {
+        Intent photoIntent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        startActivityForResult(photoIntent, 2000);
     }
 
     @Override
