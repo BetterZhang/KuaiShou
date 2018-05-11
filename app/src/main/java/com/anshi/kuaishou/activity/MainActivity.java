@@ -15,12 +15,15 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import com.anshi.kuaishou.R;
 import com.anshi.kuaishou.domain.MailAnalysisResult;
 import com.anshi.kuaishou.domain.ResponseBody;
 import com.anshi.kuaishou.service.AppService;
 import com.anshi.kuaishou.utils.BitmapUtil;
 import com.anshi.kuaishou.utils.MailAnalyzer;
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
 import com.tbruyelle.rxpermissions2.RxPermissions;
 import java.io.File;
 import java.net.ConnectException;
@@ -169,6 +172,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.btn_scanner:
+                gotoScanner();
                 break;
             case R.id.btn_camera:
                 rxPermissions
@@ -197,6 +201,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    private void gotoScanner() {
+        IntentIntegrator integrator = new IntentIntegrator(this);
+        integrator.setCaptureActivity(AnyOrientationCaptureActivity.class);
+        integrator.setDesiredBarcodeFormats(IntentIntegrator.ONE_D_CODE_TYPES);
+        integrator.setPrompt("Scan something");
+        integrator.setOrientationLocked(false);
+        integrator.setBeepEnabled(false);
+        integrator.setBarcodeImageEnabled(true);
+        integrator.initiateScan();
+    }
+
     private void gotoCamera() {
         // 获取路径
         String path = Environment.getExternalStorageDirectory() + File.separator + "images";
@@ -222,30 +237,43 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 1000 && resultCode == RESULT_OK) {
+        if (resultCode == RESULT_OK) {
+            if (requestCode == 1000) {
 //            Bitmap photo = (Bitmap) data.getExtras().get("data");
-            RequestBody body = null;
-            try {
-                body = RequestBody.create(MediaType.parse("multipart/form-data"), BitmapUtil.readStream(filePath));
-            } catch (Exception e) {
-                e.printStackTrace();
+                startOCR(filePath);
+            } else if (requestCode == 2000) {
+                Uri selectedImage = data.getData();
+                String[] filePathColumns = {MediaStore.Images.Media.DATA};
+                Cursor c = getContentResolver().query(selectedImage, filePathColumns, null, null, null);
+                c.moveToFirst();
+                int columnIndex = c.getColumnIndex(filePathColumns[0]);
+                String imagePath = c.getString(columnIndex);
+                startOCR(imagePath);
+                c.close();
+            } else {
+                IntentResult result = IntentIntegrator.parseActivityResult(resultCode, data);
+                String path = result.getBarcodeImagePath();
+                startOCR(path);
+
+                if (result.getContents() == null) {
+                    Log.d(TAG, "扫描取消");
+                    Toast.makeText(this, "Cancelled", Toast.LENGTH_LONG).show();
+                } else {
+                    Log.d(TAG, "Scanned");
+                    Toast.makeText(this, "Scanned: " + result.getContents(), Toast.LENGTH_LONG).show();
+                }
             }
-            loadData(body);
-        } else if (requestCode == 2000 && resultCode == RESULT_OK) {
-            Uri selectedImage = data.getData();
-            String[] filePathColumns = {MediaStore.Images.Media.DATA};
-            Cursor c = getContentResolver().query(selectedImage, filePathColumns, null, null, null);
-            c.moveToFirst();
-            int columnIndex = c.getColumnIndex(filePathColumns[0]);
-            String imagePath = c.getString(columnIndex);
-            RequestBody body = null;
-            try {
-                body = RequestBody.create(MediaType.parse("multipart/form-data"), BitmapUtil.readStream(imagePath));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            loadData(body);
-            c.close();
         }
     }
+
+    private void startOCR(String imagePath) {
+        RequestBody body = null;
+        try {
+            body = RequestBody.create(MediaType.parse("multipart/form-data"), BitmapUtil.readStream(imagePath));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        loadData(body);
+    }
+
 }
