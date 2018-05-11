@@ -45,6 +45,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Button btn_camera;
     Button btn_photo;
     TextView tv_result;
+    TextView tv_orgin_result;
     ProgressDialog progressDialog;
 
     RxPermissions rxPermissions;
@@ -80,6 +81,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         btn_camera = findViewById(R.id.btn_camera);
         btn_photo = findViewById(R.id.btn_photo);
         tv_result = findViewById(R.id.tv_result);
+        tv_orgin_result = findViewById(R.id.tv_orgin_result);
 
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("正在识别中，请稍等...");
@@ -103,21 +105,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 progressDialog.cancel();
-                if (response == null)
+                if (response == null || response.body() == null)
                     return;
                 Log.d(TAG, response.body().toString());
                 List<String> strs = response.body().getLinesText();
 
-//                if (strs.size() == 0) {
-//                    tv_result.setText("识别结果为空");
-//                    return;
-//                }
-//
-//                StringBuilder stringBuilder = new StringBuilder();
-//                for (int i = 0; i < strs.size(); i++) {
-//                    stringBuilder.append(strs.get(i) + "\n");
-//                }
-//                tv_result.setText(stringBuilder.toString());
+                if (strs.size() == 0) {
+                    tv_orgin_result.setText("识别结果为空");
+                    return;
+                }
+
+                StringBuilder stringBuilder = new StringBuilder();
+                for (int i = 0; i < strs.size(); i++) {
+                    stringBuilder.append(strs.get(i) + "\n");
+                }
+                tv_orgin_result.setText(stringBuilder.toString());
 
                 MailAnalysisResult result = MailAnalyzer.doMailAnalysis(strs);
                 Log.d(TAG, result.toString());
