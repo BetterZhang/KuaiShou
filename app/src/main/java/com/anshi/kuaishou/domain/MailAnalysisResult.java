@@ -99,6 +99,6 @@ public class MailAnalysisResult {
 
     @Override
     public String toString() {
-        return "code:" + code + "\nmailNo:" + mailNo + "\nrecipientName:" + recipientName + "\nrecipientPhone:" + recipientPhone;
+        return "code:" + code + "; mailNo:" + mailNo + "; recipientName:" + recipientName + "; recipientPhone:" + recipientPhone;
     }
 }

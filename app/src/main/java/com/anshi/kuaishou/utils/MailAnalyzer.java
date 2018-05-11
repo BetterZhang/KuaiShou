@@ -2,6 +2,7 @@ package com.anshi.kuaishou.utils;
 
 import com.anshi.kuaishou.domain.MailAnalysisResult;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -28,42 +29,23 @@ public class MailAnalyzer {
         boolean isNameOk = false;
         boolean isPhoneOk = false;
         boolean isMailNoOk = false;
-        String tmpStr = null;
-        String[] tmpStrArr = null;
-        for (int i = 0; i < ocrResult.size(); i++) {
-            tmpStr = ocrResult.get(i).trim();
-            tmpStrArr = tmpStr.split("\\s+");
-            if (1 == tmpStrArr.length) {
-                if (isMobile(tmpStr)) {
-                    result.setRecipientName(getNameStr(ocrResult.get(i - 1).trim()));
-                    result.setRecipientPhone(getPhoneStr(tmpStr));
-                    isNameOk = true;
-                    isPhoneOk = true;
-                    break;
-                } else {
-                    continue;
-                }
-            } else if (1 < tmpStrArr.length) {
-                if (isMobile(tmpStrArr[1])) {
-                    result.setRecipientName(getNameStr(tmpStrArr[0]));
-                    result.setRecipientPhone(getPhoneStr(tmpStrArr[1]));
-                    isNameOk = true;
-                    isPhoneOk = true;
-                    break;
-                } else {
-                    continue;
-                }
-            } else {
-                continue;
-            }
+        // 解析姓名和快递号
+        String[] nameAndPhoneStr = getNameAndPhone(ocrResult);
+        if (null == nameAndPhoneStr) {
+            isNameOk = false;
+            isPhoneOk = false;
+        } else {
+            result.setRecipientName(nameAndPhoneStr[0]);
+            result.setRecipientPhone(nameAndPhoneStr[1]);
+            isNameOk = true;
+            isPhoneOk = true;
         }
-        for (int i = ocrResult.size() -1; i >= 0; i--) {
-            tmpStr = ocrResult.get(i).trim();
-            if (tmpStr.matches("([a-zA-Z]*)\\d{12,}([a-zA-Z]*)")) {
-                result.setMailNo(tmpStr);
-                isMailNoOk = true;
-                break;
-            }
+
+        // 解析运单号
+        String mailNoStr = getMailNo(ocrResult);
+        if (null != mailNoStr) {
+            result.setMailNo(mailNoStr);
+            isMailNoOk = true;
         }
         if (!isMailNoOk && !isNameOk && !isPhoneOk) {
             result.setCode(MailAnalysisResult.ERROR);
@@ -75,6 +57,56 @@ public class MailAnalyzer {
     private static String mobileRegex3 = "^(130|131|132|133|134|135|136|137|138|139|145|147|149|150|151|152|153|155|156|157|158|159|166|170|171|172|173|175|176|177|178|180|181|182|183|184|185|186|187|188|189|198|199)\\d{8}$";
     /** 手机号码正则（前两位判断）. */
     private static String mobileRegex2 = "^(13|14|15|16|17|18|19)\\d{9}$";
+
+    /**
+     * 解析运单号.
+     * @param ocrResult 识别结果
+     * @return 运单号（为null则解析失败）
+     */
+    private static String getMailNo(List<String> ocrResult) {
+        String tmpStr = null;
+        for (int i = ocrResult.size() -1; i >= 0; i--) {
+            tmpStr = ocrResult.get(i).trim();
+            tmpStr = tmpStr.replaceAll("[-|\\s]+", "");
+            if (tmpStr.matches("([a-zA-Z]*)\\d{12,}([a-zA-Z]*)")) {
+                return tmpStr;
+            }
+        }
+        return null;
+    }
+
+    private static String[] getNameAndPhone(List<String> ocrResult) {
+        String tmpStr = null;
+        String tmpName = null;
+        String tmpPhone = null;
+        Pattern patternNumbers = Pattern.compile("\\d+");
+        Pattern patternNotNumber = Pattern.compile("\\D+");
+        Matcher matcher = null;
+        for (int i = 0; i < ocrResult.size(); i++) {
+            tmpStr = ocrResult.get(i).trim();
+            if (tmpStr.matches("([\\u4E00-\\u9FA5]*)\\s*([0-9|-])+")) {
+                tmpStr = tmpStr.replaceAll("[\\s|-]+", "");
+            }
+            // 获得手机号码
+            matcher = patternNumbers.matcher(tmpStr);
+            if (matcher.find()) {
+                tmpPhone = matcher.group(0);
+            }
+            if (isMobile(tmpPhone)) {
+                // 识别姓名
+                matcher = patternNotNumber.matcher(tmpStr);
+                if (matcher.find()) {
+                    tmpName = getNameStr(matcher.group(0));
+                } else {
+                    tmpName = getNameStr(ocrResult.get(i - 1).trim());
+                }
+                return new String[] {tmpName, tmpPhone};
+            } else {
+                continue;
+            }
+        }
+        return null;
+    }
 
     /**
      * 是否是手机号码.
