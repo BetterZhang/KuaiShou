@@ -22,14 +22,14 @@ import com.anshi.kuaishou.domain.ResponseBody;
 import com.anshi.kuaishou.service.AppService;
 import com.anshi.kuaishou.utils.BitmapUtil;
 import com.anshi.kuaishou.utils.MailAnalyzer;
-import com.google.zxing.integration.android.IntentIntegrator;
-import com.google.zxing.integration.android.IntentResult;
 import com.tbruyelle.rxpermissions2.RxPermissions;
+
 import java.io.File;
 import java.net.ConnectException;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
@@ -172,7 +172,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.btn_scanner:
-                gotoScanner();
+//                gotoScanner();
                 break;
             case R.id.btn_camera:
                 rxPermissions
@@ -201,16 +201,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    private void gotoScanner() {
-        IntentIntegrator integrator = new IntentIntegrator(this);
-        integrator.setCaptureActivity(AnyOrientationCaptureActivity.class);
-        integrator.setDesiredBarcodeFormats(IntentIntegrator.ONE_D_CODE_TYPES);
-        integrator.setPrompt("Scan something");
-        integrator.setOrientationLocked(false);
-        integrator.setBeepEnabled(false);
-        integrator.setBarcodeImageEnabled(true);
-        integrator.initiateScan();
-    }
+//    private void gotoScanner() {
+//        IntentIntegrator integrator = new IntentIntegrator(this);
+//        integrator.setCaptureActivity(AnyOrientationCaptureActivity.class);
+//        integrator.setDesiredBarcodeFormats(IntentIntegrator.ONE_D_CODE_TYPES);
+//        integrator.setPrompt("Scan something");
+//        integrator.setOrientationLocked(false);
+//        integrator.setBeepEnabled(false);
+//        integrator.setBarcodeImageEnabled(true);
+//        integrator.initiateScan();
+//    }
 
     private void gotoCamera() {
         // 获取路径
@@ -250,19 +250,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 String imagePath = c.getString(columnIndex);
                 startOCR(imagePath);
                 c.close();
-            } else {
-                IntentResult result = IntentIntegrator.parseActivityResult(resultCode, data);
-                String path = result.getBarcodeImagePath();
-                startOCR(path);
-
-                if (result.getContents() == null) {
-                    Log.d(TAG, "扫描取消");
-                    Toast.makeText(this, "Cancelled", Toast.LENGTH_LONG).show();
-                } else {
-                    Log.d(TAG, "Scanned");
-                    Toast.makeText(this, "Scanned: " + result.getContents(), Toast.LENGTH_LONG).show();
-                }
             }
+//            else {
+//                IntentResult result = IntentIntegrator.parseActivityResult(resultCode, data);
+//                String path = result.getBarcodeImagePath();
+//                startOCR(path);
+//
+//                if (result.getContents() == null) {
+//                    Log.d(TAG, "扫描取消");
+//                    Toast.makeText(this, "Cancelled", Toast.LENGTH_LONG).show();
+//                } else {
+//                    Log.d(TAG, "Scanned");
+//                    Toast.makeText(this, "Scanned: " + result.getContents(), Toast.LENGTH_LONG).show();
+//                }
+//            }
         }
     }
 
