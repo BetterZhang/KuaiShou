@@ -2,6 +2,7 @@ package com.anshi.kuaishou.activity;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
@@ -18,6 +19,7 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
     EditText et_num;
     EditText et_phone;
     EditText et_name;
+    FloatingActionButton fab_pickup;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,11 +36,13 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
         et_num = findViewById(R.id.et_num);
         et_phone = findViewById(R.id.et_phone);
         et_name = findViewById(R.id.et_name);
+        fab_pickup = findViewById(R.id.fab_pickup);
     }
 
     private void initListener() {
         btn_scan.setOnClickListener(this);
         btn_store.setOnClickListener(this);
+        fab_pickup.setOnClickListener(this);
     }
 
     @Override
@@ -49,6 +53,9 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
                 break;
             case R.id.btn_store:
                 break;
+            case R.id.fab_pickup:
+                gotoMailListActivity();
+                break;
             default:
                 break;
         }
@@ -57,6 +64,11 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
     private void gotoScanActivity() {
         Intent intent = new Intent(MainActivity2.this, ScannerActivity.class);
         startActivityForResult(intent, 1000);
+    }
+
+    private void gotoMailListActivity() {
+        Intent intent = new Intent(MainActivity2.this, MailListActivity.class);
+        startActivity(intent);
     }
 
     @Override

@@ -50,6 +50,10 @@
             android:name=".activity.ScannerActivity"
             android:screenOrientation="portrait">
         </activity>
+        <activity
+            android:name=".activity.MailListActivity"
+            android:screenOrientation="portrait">
+        </activity>
     </application>
 
 </manifest>
