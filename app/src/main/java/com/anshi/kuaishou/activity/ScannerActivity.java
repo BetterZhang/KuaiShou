@@ -21,10 +21,10 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewStub;
 import android.view.Window;
-import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.Toast;
+
 import com.anshi.kuaishou.R;
 import com.anshi.kuaishou.camera.CameraManager;
 import com.anshi.kuaishou.decode.CaptureActivityHandler;
@@ -41,10 +41,12 @@ import com.anshi.kuaishou.utils.Tools;
 import com.anshi.kuaishou.view.ImageDialog;
 import com.anshi.kuaishou.view.ScannerFinderView;
 import com.google.zxing.Result;
+
 import java.io.IOException;
 import java.net.ConnectException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
@@ -57,7 +59,8 @@ import retrofit2.converter.gson.GsonConverterFactory;
 /**
  * 二维码扫描类。
  */
-public class ScannerActivity extends Activity implements Callback, Camera.PictureCallback, Camera.ShutterCallback{
+//public class ScannerActivity extends Activity implements Callback, Camera.PictureCallback, Camera.ShutterCallback {
+public class ScannerActivity extends Activity implements Callback, Camera.ShutterCallback {
 
     private static final String TAG = "ScannerActivity";
 
@@ -76,11 +79,12 @@ public class ScannerActivity extends Activity implements Callback, Camera.Pictur
     private SurfaceView mSurfaceView;
     private ViewStub mSurfaceViewStub;
     private DecodeManager mDecodeManager = new DecodeManager();
-    private Switch switch1;
-    private Button bt;
+//    private Switch switch1;
+//    private Button bt;
 
     private ProgressDialog progressDialog;
-    private Bitmap bmp;
+//    private Bitmap bmp;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -114,19 +118,19 @@ public class ScannerActivity extends Activity implements Callback, Camera.Pictur
     private void initView() {
         mQrCodeFinderView = (ScannerFinderView) findViewById(R.id.qr_code_view_finder);
         mSurfaceViewStub = (ViewStub) findViewById(R.id.qr_code_view_stub);
-        switch1 = (Switch) findViewById(R.id.switch1);
+//        switch1 = (Switch) findViewById(R.id.switch1);
         mHasSurface = false;
 
-        bt = (Button) findViewById(R.id.bt);
-
-        bt.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                bt.setEnabled(false);
-                buildProgressDialog();
-                CameraManager.get().takeShot(ScannerActivity.this, ScannerActivity.this, ScannerActivity.this);
-            }
-        });
+//        bt = (Button) findViewById(R.id.bt);
+//
+//        bt.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                bt.setEnabled(false);
+//                buildProgressDialog();
+//                CameraManager.get().takeShot(ScannerActivity.this, ScannerActivity.this, ScannerActivity.this);
+//            }
+//        });
 
         Switch switch2 = (Switch) findViewById(R.id.switch2);
         switch2.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -141,8 +145,13 @@ public class ScannerActivity extends Activity implements Callback, Camera.Pictur
         return mQrCodeFinderView.getRect();
     }
 
+    public Rect getOnecodeRect() {
+        return mQrCodeFinderView.getOnecodeRect();
+    }
+
     public boolean isQRCode() {
-        return switch1.isChecked();
+//        return switch1.isChecked();
+        return false;
     }
 
     private void initData() {
@@ -248,7 +257,8 @@ public class ScannerActivity extends Activity implements Callback, Camera.Pictur
     }
 
     @Override
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {}
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+    }
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
@@ -281,8 +291,10 @@ public class ScannerActivity extends Activity implements Callback, Camera.Pictur
 
             Log.e("aaa", result.getBitmap() == null ? "true" : "false");
 
-            if (result.getBitmap() != null)
-                loadData(result.getBitmap());
+            if (result.getBitmap() != null) {
+                buildProgressDialog();
+                loadData(result.getMailNoStr(), result.getMobileNoStr(), result.getBitmap());
+            }
 //            if (switch1.isChecked()) {
 //                qrSucceed(result.getText());
 //            } else {
@@ -292,7 +304,7 @@ public class ScannerActivity extends Activity implements Callback, Camera.Pictur
         }
     }
 
-    private void loadData(Bitmap bitmap) {
+    private void loadData(final String maNo, final String moNo, Bitmap bitmap) {
         RequestBody body = null;
         try {
             body = RequestBody.create(MediaType.parse("multipart/form-data"), BitmapUtil.bitmap2Bytes(bitmap));
@@ -308,14 +320,17 @@ public class ScannerActivity extends Activity implements Callback, Camera.Pictur
         response.enqueue(new retrofit2.Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                if (response == null || response.body() == null)
+                cancelProgressDialog();
+                if (response == null || response.body() == null) {
+                    qrSucceed("未发现待解析内容");
                     return;
+                }
                 Log.d(TAG, response.body().toString());
                 List<String> strs = response.body().getLinesText();
 
                 if (strs.size() == 0) {
 //                    tv_orgin_result.setText("识别结果为空");
-                    qrSucceed("识别结果为空");
+                    qrSucceed("无待解析内容");
                     return;
                 }
 
@@ -328,6 +343,8 @@ public class ScannerActivity extends Activity implements Callback, Camera.Pictur
                 MailAnalysisResult result = MailAnalyzer.doMailAnalysis(strs);
                 Log.d(TAG, result.toString());
                 if (result.getCode() == 200 && result != null) {
+                    result.setMailNo(maNo);
+                    result.setRecipientPhone(moNo);
 //                    tv_result.setText(result.toString());
 //                    qrSucceed(result.toString());
                     Intent intent = getIntent();
@@ -336,7 +353,7 @@ public class ScannerActivity extends Activity implements Callback, Camera.Pictur
                     finish();
                 } else if (result.getCode() == 500) {
 //                    tv_result.setText("识别结果为空");
-                    qrSucceed("识别结果为空");
+                    qrSucceed("解析失败");
                 }
             }
 
@@ -354,41 +371,42 @@ public class ScannerActivity extends Activity implements Callback, Camera.Pictur
         });
     }
 
+//    @Override
+//    public void onPictureTaken(byte[] data, Camera camera) {
+//        if (data == null) {
+//            return;
+//        }
+//        mCaptureActivityHandler.onPause();
+//        bmp = null;
+//        bmp = Tools.getFocusedBitmap(this, camera, data, getCropRect());
+//
+//        TesseractThread mTesseractThread = new TesseractThread(bmp, new TesseractCallback() {
+//
+//            @Override
+//            public void succeed(String result) {
+//                Message message = Message.obtain();
+//                message.what = 0;
+//                message.obj = result;
+//                mHandler.sendMessage(message);
+//            }
+//
+//            @Override
+//            public void fail() {
+//                Message message = Message.obtain();
+//                message.what = 1;
+//                mHandler.sendMessage(message);
+//            }
+//        });
+//
+//        Thread thread = new Thread(mTesseractThread);
+//        thread.start();
+//    }
+
     @Override
-    public void onPictureTaken(byte[] data, Camera camera) {
-        if (data == null) {
-            return;
-        }
-        mCaptureActivityHandler.onPause();
-        bmp = null;
-        bmp = Tools.getFocusedBitmap(this, camera, data, getCropRect());
-
-        TesseractThread mTesseractThread = new TesseractThread(bmp, new TesseractCallback() {
-
-            @Override
-            public void succeed(String result) {
-                Message message = Message.obtain();
-                message.what = 0;
-                message.obj = result;
-                mHandler.sendMessage(message);
-            }
-
-            @Override
-            public void fail() {
-                Message message = Message.obtain();
-                message.what = 1;
-                mHandler.sendMessage(message);
-            }
-        });
-
-        Thread thread = new Thread(mTesseractThread);
-        thread.start();
+    public void onShutter() {
     }
 
-    @Override
-    public void onShutter() {}
-
-    private void qrSucceed(String result){
+    private void qrSucceed(String result) {
         AlertDialog dialog = new AlertDialog.Builder(this).setTitle(R.string.notification)
                 .setMessage(result)
                 .setPositiveButton(R.string.positive_button_confirm, new DialogInterface.OnClickListener() {
@@ -397,8 +415,7 @@ public class ScannerActivity extends Activity implements Callback, Camera.Pictur
                         dialog.dismiss();
                         restartPreview();
                     }
-                })
-                .show();
+                }).show();
         dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
             @Override
             public void onDismiss(DialogInterface dialog) {
@@ -407,38 +424,38 @@ public class ScannerActivity extends Activity implements Callback, Camera.Pictur
         });
     }
 
-    private void phoneSucceed(String result, Bitmap bitmap){
-        ImageDialog dialog = new ImageDialog(this);
-        dialog.addBitmap(bitmap);
-        dialog.addTitle(TextUtils.isEmpty(result) ? "未识别到手机号码" : result);
-        dialog.show();
-        dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
-            @Override
-            public void onDismiss(DialogInterface dialog) {
-                restartPreview();
-            }
-        });
-    }
-
-    private Handler mHandler = new Handler(){
-
-        @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-            bt.setEnabled(true);
-            cancelProgressDialog();
-            switch (msg.what){
-                case 0:
-                    phoneSucceed((String) msg.obj, bmp);
-                    break;
-                case 1:
-                    Toast.makeText(ScannerActivity.this, "无法识别", Toast.LENGTH_SHORT).show();
-                    break;
-                default:
-                    break;
-            }
-        }
-    };
+//    private void phoneSucceed(String result, Bitmap bitmap) {
+//        ImageDialog dialog = new ImageDialog(this);
+//        dialog.addBitmap(bitmap);
+//        dialog.addTitle(TextUtils.isEmpty(result) ? "未识别到手机号码" : result);
+//        dialog.show();
+//        dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+//            @Override
+//            public void onDismiss(DialogInterface dialog) {
+//                restartPreview();
+//            }
+//        });
+//    }
+//
+//    private Handler mHandler = new Handler() {
+//
+//        @Override
+//        public void handleMessage(Message msg) {
+//            super.handleMessage(msg);
+////            bt.setEnabled(true);
+//            cancelProgressDialog();
+//            switch (msg.what) {
+//                case 0:
+//                    phoneSucceed((String) msg.obj, bmp);
+//                    break;
+//                case 1:
+//                    Toast.makeText(ScannerActivity.this, "无法识别", Toast.LENGTH_SHORT).show();
+//                    break;
+//                default:
+//                    break;
+//            }
+//        }
+//    };
 
     public void buildProgressDialog() {
         if (progressDialog == null) {
@@ -451,7 +468,7 @@ public class ScannerActivity extends Activity implements Callback, Camera.Pictur
     }
 
     public void cancelProgressDialog() {
-        if (progressDialog != null){
+        if (progressDialog != null) {
             if (progressDialog.isShowing()) {
                 progressDialog.dismiss();
             }

@@ -23,7 +23,7 @@ public final class ScannerFinderView extends RelativeLayout {
     private static final int OPAQUE = 0xFF;
 
     private static final int MIN_FOCUS_BOX_WIDTH = 50;
-    private static final int MIN_FOCUS_BOX_HEIGHT = 50;
+    private static final int MIN_FOCUS_BOX_HEIGHT = 35;
     private static final int MIN_FOCUS_BOX_TOP = 200;
 
     private static Point ScrRes;
@@ -31,7 +31,7 @@ public final class ScannerFinderView extends RelativeLayout {
 
     private Paint mPaint;
     private int mScannerAlpha;
-    private int mMaskColor;
+//    private int mMaskColor;
     private int mFrameColor;
     private int mLaserColor;
     private int mTextColor;
@@ -41,6 +41,7 @@ public final class ScannerFinderView extends RelativeLayout {
 
     private Rect mFrameRect; //绘制的Rect
     private Rect mRect; //返回的Rect
+    private Rect mOnecodeRect; //返回的一维码区域Rect
 
     public ScannerFinderView(Context context) {
         this(context, null);
@@ -55,7 +56,7 @@ public final class ScannerFinderView extends RelativeLayout {
         mPaint = new Paint();
         mPaint.setAntiAlias(true);
         Resources resources = getResources();
-        mMaskColor = resources.getColor(R.color.finder_mask);
+//        mMaskColor = resources.getColor(R.color.finder_mask);
         mFrameColor = resources.getColor(R.color.finder_frame);
         mLaserColor = resources.getColor(R.color.finder_laser);
         mTextColor = resources.getColor(R.color.white);
@@ -79,8 +80,10 @@ public final class ScannerFinderView extends RelativeLayout {
 
             ScrRes = ScreenUtils.getScreenResolution(context);
 
-            int width = ScrRes.x * 3 / 5;
-            int height = width;
+//            int width = ScrRes.x * 3 / 5;
+//            int height = width;
+            int width = ScrRes.x * 9 / 10;
+            int height = ScrRes.y * 1 / 6;
 
             width = width == 0
                     ? MIN_FOCUS_BOX_WIDTH
@@ -96,11 +99,16 @@ public final class ScannerFinderView extends RelativeLayout {
 
             mFrameRect = new Rect(left, top, left + width, top + height);
             mRect = mFrameRect;
+            mOnecodeRect = new Rect(0, top + height, ScrRes.x, ScrRes.y);
         }
     }
 
     public Rect getRect() {
         return mRect;
+    }
+
+    public Rect getOnecodeRect() {
+        return mOnecodeRect;
     }
 
     @Override
@@ -116,11 +124,11 @@ public final class ScannerFinderView extends RelativeLayout {
         int height = canvas.getHeight();
 
         // 绘制焦点框外边的暗色背景
-        mPaint.setColor(mMaskColor);
-        canvas.drawRect(0, 0, width, frame.top, mPaint);
-        canvas.drawRect(0, frame.top, frame.left, frame.bottom + 1, mPaint);
-        canvas.drawRect(frame.right + 1, frame.top, width, frame.bottom + 1, mPaint);
-        canvas.drawRect(0, frame.bottom + 1, width, height, mPaint);
+//        mPaint.setColor(mMaskColor);
+//        canvas.drawRect(0, 0, width, frame.top, mPaint);
+//        canvas.drawRect(0, frame.top, frame.left, frame.bottom + 1, mPaint);
+//        canvas.drawRect(frame.right + 1, frame.top, width, frame.bottom + 1, mPaint);
+//        canvas.drawRect(0, frame.bottom + 1, width, height, mPaint);
 
         drawFocusRect(canvas, frame);
         drawAngle(canvas, frame);
@@ -294,7 +302,8 @@ public final class ScannerFinderView extends RelativeLayout {
                             //移除之前的刷新
                             mHandler.removeMessages(1);
                             //松手时对外更新
-                            mRect = mFrameRect; 
+                            mRect = mFrameRect;
+                            mOnecodeRect = new Rect(0, mRect.bottom, ScrRes.x, ScrRes.y);
                             lastX = -1;
                             lastY = -1;
                             return true;
@@ -305,7 +314,6 @@ public final class ScannerFinderView extends RelativeLayout {
                 }
             };
         }
-
         return touchListener;
     }
 

@@ -19,6 +19,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
+
 import com.anshi.kuaishou.MyApplication;
 import com.anshi.kuaishou.R;
 import com.anshi.kuaishou.activity.ScannerActivity;
@@ -30,6 +31,7 @@ import com.google.zxing.MultiFormatReader;
 import com.google.zxing.PlanarYUVLuminanceSource;
 import com.google.zxing.Result;
 import com.google.zxing.common.HybridBinarizer;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -42,9 +44,13 @@ final class DecodeHandler extends Handler {
     private final MultiFormatReader mMultiFormatReader;
     private final Map<DecodeHintType, Object> mHints;
     private byte[] mRotatedData;
+    private boolean isScanMobile;
+    private boolean isScanOneCode;
 
-    DecodeHandler(ScannerActivity activity) {
+    DecodeHandler(ScannerActivity activity, boolean scmo, boolean scoc) {
         this.mActivity = activity;
+        this.isScanMobile = scmo;
+        this.isScanOneCode = scoc;
         mMultiFormatReader = new MultiFormatReader();
         mHints = new Hashtable<>();
         mHints.put(DecodeHintType.CHARACTER_SET, "utf-8");
@@ -52,7 +58,13 @@ final class DecodeHandler extends Handler {
         Collection<BarcodeFormat> barcodeFormats = new ArrayList<>();
         barcodeFormats.add(BarcodeFormat.CODE_39);
         barcodeFormats.add(BarcodeFormat.CODE_128); // 快递单常用格式39,128
-        barcodeFormats.add(BarcodeFormat.QR_CODE); //扫描格式自行添加
+        barcodeFormats.add(BarcodeFormat.CODABAR);
+        barcodeFormats.add(BarcodeFormat.CODE_93);
+        barcodeFormats.add(BarcodeFormat.EAN_8);
+        barcodeFormats.add(BarcodeFormat.EAN_13);
+        barcodeFormats.add(BarcodeFormat.UPC_A);
+        barcodeFormats.add(BarcodeFormat.UPC_E);
+//        barcodeFormats.add(BarcodeFormat.QR_CODE); //扫描格式自行添加
         mHints.put(DecodeHintType.POSSIBLE_FORMATS, barcodeFormats);
     }
 
@@ -103,31 +115,62 @@ final class DecodeHandler extends Handler {
         Result rawResult = null;
         try {
             Rect rect = mActivity.getCropRect();
+            Rect rectOneCode = mActivity.getOnecodeRect();
             if (rect == null) {
                 return;
             }
 
             PlanarYUVLuminanceSource source = new PlanarYUVLuminanceSource(mRotatedData, width, height, rect.left, rect.top, rect.width(), rect.height(), false);
+            PlanarYUVLuminanceSource sourceOnecode = new PlanarYUVLuminanceSource(mRotatedData, width, height, rectOneCode.left, rectOneCode.top, rectOneCode.width(), rectOneCode.height(), false);
 
             if( mActivity.isQRCode()){
                 BinaryBitmap bitmap1 = new BinaryBitmap(new HybridBinarizer(source));
                 rawResult = mMultiFormatReader.decode(bitmap1, mHints);
             }else{
-                TessEngine tessEngine = TessEngine.Generate(MyApplication.sAppContext);
-                Bitmap bitmap = source.renderCroppedGreyscaleBitmap();
-                String result = tessEngine.detectText(bitmap);
-                if(!TextUtils.isEmpty(result)){
-                    rawResult = new Result(result, null, null, null);
-                    rawResult.setBitmap(bitmap);
+//                TessEngine tessEngine = TessEngine.Generate(MyApplication.sAppContext);
+//                Bitmap bitmap = source.renderCroppedGreyscaleBitmap();
+//                String result = tessEngine.detectText(bitmap);
+//                if(!TextUtils.isEmpty(result)){
+//                    rawResult = new Result(result, null, null, null);
+//                    rawResult.setBitmap(bitmap);
+//                }
+                if (isScanOneCode) {
+                    BinaryBitmap bitmap2 = new BinaryBitmap(new HybridBinarizer(sourceOnecode));
+                    Result mailResult = mMultiFormatReader.decode(bitmap2, mHints);
+                    if (null != mailResult && !TextUtils.isEmpty(mailResult.getText())) {
+                        rawResult = new Result(mailResult.getText(), null, null, null);
+                        rawResult.setMailNoStr(mailResult.getText());
+                        isScanOneCode = false;
+                    }
+                }
+                if (isScanMobile) {
+                    TessEngine tessEngine = TessEngine.Generate(MyApplication.sAppContext);
+                    Bitmap bitmap = source.renderCroppedGreyscaleBitmap();
+                    String result = tessEngine.detectText(bitmap);
+                    if(!TextUtils.isEmpty(result)){
+                        if (11 < result.length()) {
+                            result = result.substring(0, 11);
+                        }
+                        if (null == rawResult) {
+                            rawResult = new Result(result, null, null, null);
+                        }
+                        rawResult.setBitmap(bitmap);
+                        rawResult.setMobileNoStr(result);
+                        isScanMobile = false;
+                    }
                 }
             }
-
         } catch (Exception ignored) {
+            ignored.printStackTrace();
         } finally {
             mMultiFormatReader.reset();
         }
 
         if (rawResult != null) {
+            if (!isScanOneCode && !isScanMobile) {
+                isScanOneCode = true;
+                isScanMobile = true;
+            }
             Message message = Message.obtain(mActivity.getCaptureActivityHandler(), R.id.decode_succeeded, rawResult);
             message.sendToTarget();
         } else {
