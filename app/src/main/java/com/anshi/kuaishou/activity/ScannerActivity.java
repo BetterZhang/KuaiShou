@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
 import android.hardware.Camera;
@@ -24,7 +25,6 @@ import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.Toast;
-
 import com.anshi.kuaishou.R;
 import com.anshi.kuaishou.camera.CameraManager;
 import com.anshi.kuaishou.decode.CaptureActivityHandler;
@@ -41,12 +41,10 @@ import com.anshi.kuaishou.utils.Tools;
 import com.anshi.kuaishou.view.ImageDialog;
 import com.anshi.kuaishou.view.ScannerFinderView;
 import com.google.zxing.Result;
-
 import java.io.IOException;
 import java.net.ConnectException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
@@ -329,9 +327,13 @@ public class ScannerActivity extends Activity implements Callback, Camera.Pictur
 
                 MailAnalysisResult result = MailAnalyzer.doMailAnalysis(strs);
                 Log.d(TAG, result.toString());
-                if (result.getCode() == 200) {
+                if (result.getCode() == 200 && result != null) {
 //                    tv_result.setText(result.toString());
-                    qrSucceed(result.toString());
+//                    qrSucceed(result.toString());
+                    Intent intent = getIntent();
+                    intent.putExtra("result", result);
+                    setResult(RESULT_OK, intent);
+                    finish();
                 } else if (result.getCode() == 500) {
 //                    tv_result.setText("识别结果为空");
                     qrSucceed("识别结果为空");

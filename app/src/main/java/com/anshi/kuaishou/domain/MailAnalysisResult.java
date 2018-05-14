@@ -1,6 +1,8 @@
 package com.anshi.kuaishou.domain;
 
-public class MailAnalysisResult {
+import java.io.Serializable;
+
+public class MailAnalysisResult implements Serializable {
 
     /** 解析成功. */
     public static final int SUCCESS = 200;
