@@ -52,6 +52,7 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
                 gotoScanActivity();
                 break;
             case R.id.btn_store:
+                store();
                 break;
             case R.id.fab_pickup:
                 gotoMailListActivity();
@@ -64,6 +65,11 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
     private void gotoScanActivity() {
         Intent intent = new Intent(MainActivity2.this, ScannerActivity.class);
         startActivityForResult(intent, 1000);
+    }
+
+    // 调用入库接口
+    private void store() {
+
     }
 
     private void gotoMailListActivity() {
