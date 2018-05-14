@@ -120,7 +120,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 StringBuilder stringBuilder = new StringBuilder();
                 for (int i = 0; i < strs.size(); i++) {
-                    stringBuilder.append(strs.get(i) + "\n");
+                    stringBuilder.append(strs.get(i)).append("\n");
                 }
                 tv_orgin_result.setText(stringBuilder.toString());
 
