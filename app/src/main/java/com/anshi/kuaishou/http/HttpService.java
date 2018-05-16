@@ -21,7 +21,7 @@ public interface HttpService {
      * 入库
      */
     @POST("/inbound")
-    Call<HttpResult> inbound(@Body HashMap<String, String> params);
+    Call<HttpResult> inbound(@Body HashMap<String, Object> params);
 
 
     /**
