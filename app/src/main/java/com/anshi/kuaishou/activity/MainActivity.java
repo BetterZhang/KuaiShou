@@ -15,7 +15,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.anshi.kuaishou.R;
 import com.anshi.kuaishou.domain.MailAnalysisResult;
 import com.anshi.kuaishou.domain.ResponseBody;
@@ -23,13 +22,11 @@ import com.anshi.kuaishou.service.AppService;
 import com.anshi.kuaishou.utils.BitmapUtil;
 import com.anshi.kuaishou.utils.MailAnalyzer;
 import com.tbruyelle.rxpermissions2.RxPermissions;
-
 import java.io.File;
 import java.net.ConnectException;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
