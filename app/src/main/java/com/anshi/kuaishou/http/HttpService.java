@@ -29,7 +29,7 @@ public interface HttpService {
      * @return
      */
     @POST("/outbound")
-    Call<HttpResult> outbound(@Body HashMap<String, String> params);
+    Call<HttpResult> outbound(@Body HashMap<String, Object> params);
 
 
     /**

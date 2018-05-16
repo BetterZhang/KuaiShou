@@ -41,4 +41,5 @@ dependencies {
     implementation 'com.tbruyelle.rxpermissions2:rxpermissions:0.9.5@aar'
     implementation 'com.rmtheis:tess-two:9.0.0'
     implementation 'com.android.support:design:27.1.1'
+    implementation 'com.github.CymChad:BaseRecyclerViewAdapterHelper:2.9.40'
 }
